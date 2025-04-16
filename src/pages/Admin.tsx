@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import EdgeFunctionTest from "@/components/EdgeFunctionTest";
 
 // Mock data for pending approvals
 const initialPendingUsers = [
@@ -163,7 +164,10 @@ const Admin = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-navy mb-8">Admin Dashboard</h1>
         
-        {/* Statistics Cards */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <EdgeFunctionTest />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
@@ -202,9 +206,7 @@ const Admin = () => {
           </div>
         </div>
         
-        {/* Admin Panel */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Tabs */}
           <div className="flex border-b">
             <button 
               className={`py-4 px-6 font-medium ${activeTab === 'pending' ? 'text-navy border-b-2 border-lime' : 'text-gray-500 hover:text-navy'}`}
@@ -226,9 +228,7 @@ const Admin = () => {
             </button>
           </div>
           
-          {/* Tab Content */}
           <div className="p-6">
-            {/* Pending Approvals Tab */}
             {activeTab === 'pending' && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">User Verification</h2>
@@ -285,7 +285,6 @@ const Admin = () => {
               </div>
             )}
             
-            {/* Role Management Tab */}
             {activeTab === 'roles' && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">Role Management</h2>
@@ -359,7 +358,6 @@ const Admin = () => {
               </div>
             )}
             
-            {/* Activity Tab */}
             {activeTab === 'activity' && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
