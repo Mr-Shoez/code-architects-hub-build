@@ -1,4 +1,3 @@
-
 import Layout from "../components/Layout";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,8 +62,6 @@ const Admin = () => {
       }
 
       try {
-        // Temporary workaround until the types are generated
-        // Check if the user is an admin using a direct query
         const { data, error } = await supabase.rpc('has_role', {
           _user_id: user.id,
           _role: 'admin'
@@ -103,16 +100,13 @@ const Admin = () => {
     const userToApprove = pendingUsers.find(user => user.id === id);
     
     if (userToApprove) {
-      // Remove from pending
       setPendingUsers(pendingUsers.filter(user => user.id !== id));
       
-      // Add to approved with default role
       setApprovedMembers([...approvedMembers, {
         ...userToApprove,
         role: "Member"
       }]);
       
-      // Add activity
       const newActivity = {
         id: activity.length + 1,
         action: `Admin approved ${userToApprove.name}`,
@@ -127,10 +121,8 @@ const Admin = () => {
     const userToReject = pendingUsers.find(user => user.id === id);
     
     if (userToReject) {
-      // Remove from pending
       setPendingUsers(pendingUsers.filter(user => user.id !== id));
       
-      // Add activity
       const newActivity = {
         id: activity.length + 1,
         action: `Admin rejected ${userToReject.name}`,
@@ -151,7 +143,6 @@ const Admin = () => {
     
     const member = approvedMembers.find(m => m.id === id);
     if (member) {
-      // Add activity
       const newActivity = {
         id: activity.length + 1,
         action: `Admin changed ${member.name}'s role to ${newRole}`,
