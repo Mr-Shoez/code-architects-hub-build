@@ -1,3 +1,4 @@
+
 import Layout from "../components/Layout";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,21 +62,29 @@ const Admin = () => {
         return;
       }
 
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .single();
+      try {
+        // Temporary workaround until the types are generated
+        // Check if the user is an admin using a direct query
+        const { data, error } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
 
-      if (error || !roles) {
-        toast.error("You do not have admin privileges");
+        if (error || !data) {
+          console.error('Error checking admin role:', error);
+          toast.error("You do not have admin privileges");
+          navigate('/');
+          return;
+        }
+
+        setIsAdmin(Boolean(data));
+      } catch (error) {
+        console.error('Error in admin check:', error);
+        toast.error("Error checking admin permissions");
         navigate('/');
-      } else {
-        setIsAdmin(true);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     checkAdminRole();
