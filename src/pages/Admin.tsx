@@ -1,6 +1,8 @@
-
 import Layout from "../components/Layout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 // Mock data for pending approvals
 const initialPendingUsers = [
@@ -29,6 +31,9 @@ const initialActivity = [
 ];
 
 const Admin = () => {
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [pendingUsers, setPendingUsers] = useState(initialPendingUsers);
   const [approvedMembers, setApprovedMembers] = useState(initialApprovedMembers);
   const [activity, setActivity] = useState(initialActivity);
@@ -46,6 +51,44 @@ const Admin = () => {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
   
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You must be logged in to access this page");
+        navigate('/');
+        return;
+      }
+
+      const { data: roles, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+
+      if (error || !roles) {
+        toast.error("You do not have admin privileges");
+        navigate('/');
+      } else {
+        setIsAdmin(true);
+      }
+      
+      setLoading(false);
+    };
+
+    checkAdminRole();
+  }, [navigate]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
+
   const handleApprove = (id: number) => {
     console.log(`Approved user ${id}`);
     const userToApprove = pendingUsers.find(user => user.id === id);
