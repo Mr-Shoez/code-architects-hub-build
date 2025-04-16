@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import EdgeFunctionTest from "@/components/EdgeFunctionTest";
+import PendingApprovals from "@/components/admin/PendingApprovals";
+import RoleManagement from "@/components/admin/RoleManagement";
+import ActivityLog from "@/components/admin/ActivityLog";
+import StatsCards from "@/components/admin/StatsCards";
 
 // Mock data for pending approvals
 const initialPendingUsers = [
@@ -39,18 +43,6 @@ const Admin = () => {
   const [approvedMembers, setApprovedMembers] = useState(initialApprovedMembers);
   const [activity, setActivity] = useState(initialActivity);
   const [activeTab, setActiveTab] = useState("pending");
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-  };
   
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -152,12 +144,6 @@ const Admin = () => {
       setActivity([newActivity, ...activity]);
     }
   };
-  
-  const filteredMembers = approvedMembers.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.stNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <Layout>
@@ -168,43 +154,11 @@ const Admin = () => {
           <EdgeFunctionTest />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Total Members</p>
-                <p className="text-2xl font-bold text-navy">{approvedMembers.length}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <i className="fas fa-users text-blue-500 text-xl"></i>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Pending Approvals</p>
-                <p className="text-2xl font-bold text-navy">{pendingUsers.length}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <i className="fas fa-user-clock text-yellow-500 text-xl"></i>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Active Events</p>
-                <p className="text-2xl font-bold text-navy">4</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <i className="fas fa-calendar-check text-green-500 text-xl"></i>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCards 
+          totalMembers={approvedMembers.length}
+          pendingApprovals={pendingUsers.length}
+          activeEvents={4}
+        />
         
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="flex border-b">
@@ -230,149 +184,22 @@ const Admin = () => {
           
           <div className="p-6">
             {activeTab === 'pending' && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">User Verification</h2>
-                
-                {pendingUsers.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ST Number</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {pendingUsers.map(user => (
-                          <tr key={user.id} data-user-id={user.id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="font-medium text-gray-900">{user.name}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-gray-500">{user.stNumber}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-gray-500">{user.email}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-gray-500">{formatDate(user.submittedAt)}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <button 
-                                className="bg-lime text-navy font-medium py-1 px-3 rounded-md hover:bg-lime/90 transition mr-2"
-                                onClick={() => handleApprove(user.id)}
-                              >
-                                Approve
-                              </button>
-                              <button 
-                                className="bg-gray-200 text-gray-700 font-medium py-1 px-3 rounded-md hover:bg-gray-300 transition"
-                                onClick={() => handleReject(user.id)}
-                              >
-                                Reject
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No pending approvals at this time.</p>
-                )}
-              </div>
+              <PendingApprovals
+                pendingUsers={pendingUsers}
+                onApprove={handleApprove}
+                onReject={handleReject}
+              />
             )}
             
             {activeTab === 'roles' && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Role Management</h2>
-                
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="Search members..."
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ST Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Role</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredMembers.map(member => (
-                        <tr key={member.id} data-user-id={member.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900">{member.name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500">{member.stNumber}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500">{member.email}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500">{member.role}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <select 
-                              className="mr-2 border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent"
-                              defaultValue=""
-                            >
-                              <option value="" disabled>Change Role</option>
-                              <option value="President">President</option>
-                              <option value="Vice President">Vice President</option>
-                              <option value="Secretary">Secretary</option>
-                              <option value="Treasurer">Treasurer</option>
-                              <option value="Member">Member</option>
-                            </select>
-                            <button 
-                              className="bg-navy text-white font-medium py-1 px-3 rounded-md hover:bg-navy/90 transition"
-                              onClick={(e) => {
-                                const select = e.currentTarget.previousElementSibling as HTMLSelectElement;
-                                if (select.value) {
-                                  handleRoleChange(member.id, select.value);
-                                  select.value = "";
-                                }
-                              }}
-                            >
-                              Update
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <RoleManagement
+                members={approvedMembers}
+                onRoleChange={handleRoleChange}
+              />
             )}
             
             {activeTab === 'activity' && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-                
-                <div className="space-y-3">
-                  {activity.map(item => (
-                    <div key={item.id} className="bg-gray-50 p-3 rounded-md">
-                      <div className="flex justify-between">
-                        <p className="text-gray-800">{item.action}</p>
-                        <span className="text-xs text-gray-500">{formatDate(item.timestamp)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ActivityLog activities={activity} />
             )}
           </div>
         </div>
