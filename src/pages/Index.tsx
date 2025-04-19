@@ -1,11 +1,11 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [stNumber, setStNumber] = useState("");
   const [stNumberError, setStNumberError] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   
   const validateStNumber = (value: string) => {
     const regex = /^ST\d{8}$/;
@@ -16,11 +16,26 @@ const Index = () => {
     setStNumberError("");
     return true;
   };
+
+  const validateEmail = (value: string) => {
+    const stNumberLower = stNumber.toLowerCase();
+    const expectedEmail = `${stNumberLower}@rcconnect.edu.za`;
+    
+    if (value.toLowerCase() !== expectedEmail) {
+      setEmailError(`Email must match your student number: ${expectedEmail}`);
+      return false;
+    }
+    setEmailError("");
+    return true;
+  };
   
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateStNumber(stNumber)) {
+    const isStNumberValid = validateStNumber(stNumber);
+    const isEmailValid = validateEmail(email);
+    
+    if (isStNumberValid && isEmailValid) {
       console.log("Registration form submitted");
       // This would connect to Supabase in a real application
     }
@@ -50,7 +65,6 @@ const Index = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row bg-white rounded-lg shadow-md overflow-hidden">
-            {/* Hero Section */}
             <div className="md:w-1/2 p-12 bg-navy text-white flex flex-col justify-center">
               <h1 className="text-4xl font-bold mb-4">Welcome to bluePrintHub</h1>
               <p className="text-xl mb-6">The official platform for the <span className="text-lime font-bold">codeArchitects</span> coding club at Rosebank College.</p>
@@ -76,7 +90,6 @@ const Index = () => {
               </div>
             </div>
             
-            {/* Auth Forms */}
             <div className="md:w-1/2 p-8 md:p-12">
               <div className="flex border-b border-gray-200 mb-6">
                 <button 
@@ -93,7 +106,6 @@ const Index = () => {
                 </button>
               </div>
               
-              {/* Login Form */}
               {activeTab === 'login' && (
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
@@ -102,7 +114,7 @@ const Index = () => {
                       type="email" 
                       id="login-email"
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent"
-                      placeholder="your.email@rosebank.edu"
+                      placeholder="ST12345678@rcconnect.edu.za"
                       required
                     />
                   </div>
@@ -138,7 +150,6 @@ const Index = () => {
                 </form>
               )}
               
-              {/* Registration Form */}
               {activeTab === 'register' && (
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div>
@@ -153,17 +164,6 @@ const Index = () => {
                   </div>
                   
                   <div>
-                    <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">College Email</label>
-                    <input 
-                      type="email" 
-                      id="register-email"
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent"
-                      placeholder="your.email@rosebank.edu"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
                     <label htmlFor="register-st-number" className="block text-sm font-medium text-gray-700 mb-1">
                       Student Number (Format: ST12345678)
                     </label>
@@ -173,11 +173,34 @@ const Index = () => {
                       className={`w-full px-4 py-2 rounded-lg border ${stNumberError ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent`}
                       placeholder="ST12345678"
                       value={stNumber}
-                      onChange={(e) => setStNumber(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        setStNumber(value);
+                        if (email) validateEmail(email);
+                      }}
                       required
                     />
                     {stNumberError && (
                       <p className="mt-1 text-sm text-red-600">{stNumberError}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">College Email</label>
+                    <input 
+                      type="email" 
+                      id="register-email"
+                      className={`w-full px-4 py-2 rounded-lg border ${emailError ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent`}
+                      placeholder="ST12345678@rcconnect.edu.za"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        validateEmail(e.target.value);
+                      }}
+                      required
+                    />
+                    {emailError && (
+                      <p className="mt-1 text-sm text-red-600">{emailError}</p>
                     )}
                   </div>
                   
