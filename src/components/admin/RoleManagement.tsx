@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Loader } from "lucide-react";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Member {
   id: string;
@@ -19,12 +22,27 @@ interface RoleManagementProps {
 
 const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState<string | null>(null);
+  const [confirmChange, setConfirmChange] = useState<{member: Member, newRole: string} | null>(null);
 
   const filteredMembers = members.filter(member => 
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.stNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleRoleChange = async (memberId: string, newRole: string) => {
+    try {
+      setLoading(memberId);
+      await onRoleChange(memberId, newRole);
+      toast.success("Role updated successfully");
+    } catch (error) {
+      toast.error("Failed to update role");
+    } finally {
+      setLoading(null);
+      setConfirmChange(null);
+    }
+  };
 
   return (
     <div>
@@ -67,6 +85,7 @@ const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
                   <select 
                     className="mr-2 border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent"
                     defaultValue=""
+                    disabled={loading === member.id}
                   >
                     <option value="" disabled>Change Role</option>
                     <option value="President">President</option>
@@ -77,14 +96,15 @@ const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
                   </select>
                   <Button 
                     variant="default"
+                    disabled={loading === member.id}
                     onClick={(e) => {
                       const select = e.currentTarget.previousElementSibling as HTMLSelectElement;
-                      if (select.value) {
-                        onRoleChange(member.id, select.value);
-                        select.value = "";
+                      if (select.value && select.value !== member.role) {
+                        setConfirmChange({ member, newRole: select.value });
                       }
                     }}
                   >
+                    {loading === member.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Update
                   </Button>
                 </TableCell>
@@ -93,6 +113,16 @@ const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!confirmChange}
+        onClose={() => setConfirmChange(null)}
+        onConfirm={() => confirmChange && handleRoleChange(confirmChange.member.id, confirmChange.newRole)}
+        title="Change Member Role"
+        description={`Are you sure you want to change ${confirmChange?.member.name}'s role from ${confirmChange?.member.role} to ${confirmChange?.newRole}?`}
+        confirmText="Update Role"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

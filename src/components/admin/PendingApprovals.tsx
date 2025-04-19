@@ -3,6 +3,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import ConfirmDialog from "./ConfirmDialog";
+import { Loader } from "lucide-react";
 
 interface PendingUser {
   id: string;
@@ -19,6 +21,34 @@ interface PendingApprovalsProps {
 }
 
 const PendingApprovals = ({ pendingUsers, onApprove, onReject }: PendingApprovalsProps) => {
+  const [loading, setLoading] = useState<string | null>(null);
+  const [confirmReject, setConfirmReject] = useState<PendingUser | null>(null);
+
+  const handleApprove = async (user: PendingUser) => {
+    try {
+      setLoading(user.id);
+      await onApprove(user.id);
+      toast.success(`Successfully approved ${user.name}'s membership request`);
+    } catch (error) {
+      toast.error(`Failed to approve ${user.name}'s membership request`);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleReject = async (user: PendingUser) => {
+    try {
+      setLoading(user.id);
+      await onReject(user.id);
+      toast.success(`Successfully rejected ${user.name}'s membership request`);
+    } catch (error) {
+      toast.error(`Failed to reject ${user.name}'s membership request`);
+    } finally {
+      setLoading(null);
+      setConfirmReject(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
@@ -63,14 +93,17 @@ const PendingApprovals = ({ pendingUsers, onApprove, onReject }: PendingApproval
                   <TableCell className="text-right">
                     <Button 
                       variant="default"
-                      onClick={() => onApprove(user.id)}
+                      onClick={() => handleApprove(user)}
+                      disabled={loading === user.id}
                       className="mr-2"
                     >
+                      {loading === user.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Approve
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => onReject(user.id)}
+                      onClick={() => setConfirmReject(user)}
+                      disabled={loading === user.id}
                     >
                       Reject
                     </Button>
@@ -83,6 +116,16 @@ const PendingApprovals = ({ pendingUsers, onApprove, onReject }: PendingApproval
       ) : (
         <p className="text-gray-500">No pending approvals at this time.</p>
       )}
+
+      <ConfirmDialog
+        isOpen={!!confirmReject}
+        onClose={() => setConfirmReject(null)}
+        onConfirm={() => confirmReject && handleReject(confirmReject)}
+        title="Reject Membership Request"
+        description={`Are you sure you want to reject ${confirmReject?.name}'s membership request? This action cannot be undone.`}
+        confirmText="Reject"
+        cancelText="Cancel"
+      />
     </div>
   );
 };
