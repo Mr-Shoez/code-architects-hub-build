@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,7 +55,6 @@ const Index = () => {
     
     if (isStNumberValid && isEmailValid && isPasswordValid) {
       try {
-        // Sign up the user
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -73,10 +71,8 @@ const Index = () => {
           return;
         }
 
-        // If signup is successful, show success toast and navigate to admin page
         toast.success("Registration successful! Logging in...");
         
-        // Automatically log in
         const { error: loginError } = await supabase.auth.signInWithPassword({
           email,
           password
@@ -87,7 +83,6 @@ const Index = () => {
           return;
         }
 
-        // Navigate to admin page
         navigate('/admin');
       } catch (error) {
         console.error("Registration error:", error);
@@ -96,10 +91,26 @@ const Index = () => {
     }
   };
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login form submitted");
-    // This would connect to Supabase in a real application
+    
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Login successful!");
+      navigate('/admin');
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred during login");
+    }
   };
 
   return (
