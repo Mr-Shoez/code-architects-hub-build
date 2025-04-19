@@ -5,7 +5,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Button } from "@/components/ui/button";
 
 interface PendingUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   stNumber: string;
@@ -14,8 +14,8 @@ interface PendingUser {
 
 interface PendingApprovalsProps {
   pendingUsers: PendingUser[];
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
 }
 
 const PendingApprovals = ({ pendingUsers, onApprove, onReject }: PendingApprovalsProps) => {

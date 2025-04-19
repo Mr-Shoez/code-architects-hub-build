@@ -1,6 +1,6 @@
 
 interface ActivityItem {
-  id: number;
+  id: string;
   action: string;
   timestamp: string;
 }

@@ -6,27 +6,27 @@ import ActivityLog from "./ActivityLog";
 
 interface AdminTabsProps {
   pendingUsers: Array<{
-    id: number;
+    id: string;
     name: string;
     email: string;
     stNumber: string;
     submittedAt: string;
   }>;
   approvedMembers: Array<{
-    id: number;
+    id: string;
     name: string;
     email: string;
     stNumber: string;
     role: string;
   }>;
   activity: Array<{
-    id: number;
+    id: string;
     action: string;
     timestamp: string;
   }>;
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
-  onRoleChange: (id: number, newRole: string) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onRoleChange: (id: string, newRole: string) => void;
 }
 
 const AdminTabs = ({

@@ -5,7 +5,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Button } from "@/components/ui/button";
 
 interface Member {
-  id: number;
+  id: string;
   name: string;
   email: string;
   stNumber: string;
@@ -14,7 +14,7 @@ interface Member {
 
 interface RoleManagementProps {
   members: Member[];
-  onRoleChange: (id: number, newRole: string) => void;
+  onRoleChange: (id: string, newRole: string) => void;
 }
 
 const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
