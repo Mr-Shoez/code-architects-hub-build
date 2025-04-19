@@ -9,6 +9,84 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          id: string
+          performed_by: string | null
+          timestamp: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          performed_by?: string | null
+          timestamp?: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          performed_by?: string | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      club_members: {
+        Row: {
+          approved_at: string
+          email: string
+          id: string
+          name: string
+          role: string
+          st_number: string
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string
+          email: string
+          id?: string
+          name: string
+          role?: string
+          st_number: string
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+          st_number?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      membership_requests: {
+        Row: {
+          email: string
+          id: string
+          name: string
+          st_number: string
+          status: Database["public"]["Enums"]["request_status"]
+          submitted_at: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          name: string
+          st_number: string
+          status?: Database["public"]["Enums"]["request_status"]
+          submitted_at?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          name?: string
+          st_number?: string
+          status?: Database["public"]["Enums"]["request_status"]
+          submitted_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -32,6 +110,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_membership_request: {
+        Args: { request_id: string; role_name?: string }
+        Returns: string
+      }
+      change_member_role: {
+        Args: { member_id: string; new_role: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -39,9 +125,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      reject_membership_request: {
+        Args: { request_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      request_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -158,6 +249,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      request_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
