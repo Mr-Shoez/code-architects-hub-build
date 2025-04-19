@@ -1,12 +1,20 @@
+
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  const [stNumber, setStNumber] = useState("");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('register');
+  const [stNumber, setStNumber] = useState("ST10465964");
   const [stNumberError, setStNumberError] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("st10465964@rcconnect.edu.za");
   const [emailError, setEmailError] = useState("");
-  
+  const [password, setPassword] = useState("Molelekimosa2004$");
+  const [name, setName] = useState("Mosa Moleleki");
+  const [passwordError, setPasswordError] = useState("");
+
   const validateStNumber = (value: string) => {
     const regex = /^ST\d{8}$/;
     if (!regex.test(value)) {
@@ -28,16 +36,63 @@ const Index = () => {
     setEmailError("");
     return true;
   };
+
+  const validatePassword = (value: string) => {
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(value)) {
+      setPasswordError("Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const isStNumberValid = validateStNumber(stNumber);
     const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
     
-    if (isStNumberValid && isEmailValid) {
-      console.log("Registration form submitted");
-      // This would connect to Supabase in a real application
+    if (isStNumberValid && isEmailValid && isPasswordValid) {
+      try {
+        // Sign up the user
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name,
+              st_number: stNumber
+            }
+          }
+        });
+
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+
+        // If signup is successful, show success toast and navigate to admin page
+        toast.success("Registration successful! Logging in...");
+        
+        // Automatically log in
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (loginError) {
+          toast.error(loginError.message);
+          return;
+        }
+
+        // Navigate to admin page
+        navigate('/admin');
+      } catch (error) {
+        console.error("Registration error:", error);
+        toast.error("An unexpected error occurred during registration");
+      }
     }
   };
   
