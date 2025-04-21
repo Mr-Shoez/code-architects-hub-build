@@ -49,7 +49,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           type="email" 
           id="login-email"
           className="w-full mt-1"
-          placeholder="president@rcconnect.edu.za"
+          placeholder="Enter your college email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -102,3 +102,4 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
 };
 
 export default LoginForm;
+
