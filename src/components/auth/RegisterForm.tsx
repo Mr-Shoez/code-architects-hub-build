@@ -13,6 +13,7 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const validateStNumber = (value: string) => {
     const regex = /^ST\d{8}$/;
@@ -55,6 +56,7 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
     
     if (isStNumberValid && isEmailValid && isPasswordValid) {
       try {
+        setLoading(true);
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -71,23 +73,28 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
           return;
         }
 
-        toast.success("Registration successful! Logging in...");
-        
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (loginError) {
-          toast.error(loginError.message);
-          return;
-        }
-
-        navigate('/admin');
+        toast.success("Registration successful! Please check your email for verification.");
+        switchTab(); // Switch to login tab
       } catch (error) {
         console.error("Registration error:", error);
         toast.error("An unexpected error occurred during registration");
+      } finally {
+        setLoading(false);
       }
+    }
+  };
+
+  // Auto-update email based on student number
+  const handleStNumberChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    setStNumber(upperValue);
+    validateStNumber(upperValue);
+    
+    // Auto-generate email when ST number is valid
+    if (validateStNumber(upperValue)) {
+      const generatedEmail = `${upperValue.toLowerCase()}@rcconnect.edu.za`;
+      setEmail(generatedEmail);
+      setEmailError("");
     }
   };
 
@@ -116,11 +123,7 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
           className={`w-full px-4 py-2 rounded-lg border ${stNumberError ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent`}
           placeholder="ST12345678"
           value={stNumber}
-          onChange={(e) => {
-            const value = e.target.value.toUpperCase();
-            setStNumber(value);
-            if (email) validateEmail(email);
-          }}
+          onChange={(e) => handleStNumberChange(e.target.value)}
           required
         />
         {stNumberError && (
@@ -173,8 +176,19 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
       <button 
         type="submit"
         className="w-full bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition"
+        disabled={loading}
       >
-        Register
+        {loading ? (
+          <span className="flex items-center justify-center">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-navy" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Registering...
+          </span>
+        ) : (
+          "Register"
+        )}
       </button>
       
       <p className="text-sm text-gray-600 mt-4">

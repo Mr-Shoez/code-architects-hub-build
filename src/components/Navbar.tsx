@@ -1,25 +1,65 @@
 
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
-  // For demo purposes only - in real app this would come from auth state
-  const isLoggedIn = location.pathname !== "/";
-  const isAdmin = true; // For demonstration
+  useEffect(() => {
+    // Check authentication status on component mount
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsLoggedIn(!!data.session);
+      
+      // For simplicity, assuming all authenticated users have admin access in this demo
+      if (data.session) {
+        setIsAdmin(true);
+      }
+    };
+    
+    checkAuth();
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+      setIsAdmin(!!session); // For simplicity in this demo
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
   
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Logged out successfully");
+      navigate('/');
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to log out");
+    }
+  };
+
+  // Don't show navbar on landing page
+  if (location.pathname === '/' && !isLoggedIn) {
+    return null;
+  }
 
   return (
     <nav className="bg-navy text-white shadow-md w-full">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
+            <Link to={isLoggedIn ? "/admin" : "/"} className="flex items-center">
               <i className="fas fa-code text-lime text-xl mr-2"></i>
               <span className="font-bold text-xl">codeArchitects</span>
             </Link>
@@ -94,7 +134,7 @@ const Navbar = () => {
                 </Link>
               ) : (
                 <button 
-                  onClick={() => console.log("Logout clicked")}
+                  onClick={handleLogout}
                   className="text-white hover:text-lime"
                 >
                   <i className="fas fa-sign-out-alt mr-1"></i> Logout
@@ -157,7 +197,7 @@ const Navbar = () => {
                 )}
                 <button 
                   onClick={() => {
-                    console.log("Logout clicked");
+                    handleLogout();
                     setIsOpen(false);
                   }}
                   className="block w-full text-left py-2 px-3 text-white hover:bg-navy-700 rounded-md"
