@@ -42,7 +42,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
         
         // More user-friendly error messages based on error type
         if (error.message === "Invalid login credentials") {
-          setFormError("The email or password you entered is incorrect. Please try again.");
+          setFormError("The email or password you entered is incorrect. Please try again or use the Demo Login.");
         } else if (error.message.includes("Email not confirmed")) {
           setFormError("Please verify your email address before logging in.");
         } else {
@@ -91,7 +91,65 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
   };
 
   const handleDemoLogin = async () => {
-    toast.info("Demo functionality is not available yet.");
+    setLoading(true);
+    setFormError("");
+    
+    try {
+      // First, let's check if the demo user exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('club_members')
+        .select('email')
+        .eq('email', 'demo@rcconnect.edu.za')
+        .single();
+      
+      // If demo user doesn't exist in club_members, we'll create one
+      if (checkError && !existingUser) {
+        console.log("Creating demo user...");
+        
+        // Create a demo user in auth
+        const { data: authUser, error: signUpError } = await supabase.auth.signUp({
+          email: 'demo@rcconnect.edu.za',
+          password: 'Demo1234!',
+          options: {
+            data: {
+              name: 'Demo User',
+              st_number: 'ST12345678'
+            }
+          }
+        });
+        
+        if (signUpError) {
+          console.error("Demo user creation error:", signUpError);
+          setFormError("Could not create demo user. Please try again.");
+          toast.error("Demo login failed");
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Try to sign in with demo credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'demo@rcconnect.edu.za',
+        password: 'Demo1234!'
+      });
+
+      if (error) {
+        console.error("Demo login error:", error);
+        setFormError("Demo login failed. Please try again later.");
+        toast.error("Demo login failed");
+        return;
+      }
+
+      console.log("Demo login successful, user:", data.user);
+      toast.success("Demo login successful! Redirecting to dashboard...");
+      navigate('/admin');
+    } catch (error) {
+      console.error("Demo login exception:", error);
+      setFormError("An unexpected error occurred during demo login");
+      toast.error("Demo login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -168,8 +226,9 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           type="button"
           className="w-full bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition"
           onClick={handleDemoLogin}
+          disabled={loading}
         >
-          Demo Login
+          {loading ? "Please wait..." : "Demo Login (Quick Access)"}
         </button>
         
         <p className="text-sm text-gray-600 mt-4">
