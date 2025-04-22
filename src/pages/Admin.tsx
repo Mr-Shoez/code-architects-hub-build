@@ -73,25 +73,20 @@ const Admin = () => {
           setUserInfo({ name: memberData.name, role: memberData.role });
           
           // Check if they have admin role specifically
-          try {
-            const { data: adminCheck, error: adminError } = await supabase.rpc('has_role', {
-              _user_id: user.id,
-              _role: 'admin'
-            });
+          const { data: adminCheck, error: adminError } = await supabase.rpc('has_role', {
+            _user_id: user.id,
+            _role: 'admin'
+          });
 
-            if (adminError) {
-              console.error('Error checking admin role:', adminError);
-              // Continue as regular member even if admin check fails
-            } else {
-              setIsAdmin(Boolean(adminCheck));
-            }
-          } catch (err) {
-            console.error('Error in admin check:', err);
-            // Continue as regular member
+          if (adminError) {
+            console.error('Error checking admin role:', adminError);
+            // Continue as regular member even if admin check fails
+          } else {
+            setIsAdmin(Boolean(adminCheck));
           }
           
           // Load relevant data based on member status
-          if (isAdmin) {
+          if (adminCheck) {
             await fetchAdminData();
           } else {
             await fetchMemberData();
@@ -138,27 +133,27 @@ const Admin = () => {
 
       if (activityError) throw activityError;
 
-      setPendingUsers(pendingData.map(item => ({
+      setPendingUsers(pendingData ? pendingData.map(item => ({
         id: item.id,
         name: item.name,
         email: item.email,
         stNumber: item.st_number,
         submittedAt: item.submitted_at
-      })));
+      })) : []);
 
-      setApprovedMembers(membersData.map(item => ({
+      setApprovedMembers(membersData ? membersData.map(item => ({
         id: item.id,
         name: item.name,
         email: item.email,
         stNumber: item.st_number,
         role: item.role
-      })));
+      })) : []);
 
-      setActivity(activityData.map(item => ({
+      setActivity(activityData ? activityData.map(item => ({
         id: item.id,
         action: item.action,
         timestamp: item.timestamp
-      })));
+      })) : []);
 
     } catch (error) {
       console.error('Error fetching admin data:', error);
@@ -175,13 +170,13 @@ const Admin = () => {
 
       if (membersError) throw membersError;
 
-      setApprovedMembers(membersData.map(item => ({
+      setApprovedMembers(membersData ? membersData.map(item => ({
         id: item.id,
         name: item.name,
         email: item.email,
         stNumber: item.st_number,
         role: item.role
-      })));
+      })) : []);
     } catch (error) {
       console.error('Error fetching member data:', error);
       toast.error("Error loading member data");
