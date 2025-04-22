@@ -1,10 +1,26 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const AuthTabs = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // User is already logged in, redirect to admin
+        navigate('/admin');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   return (
     <div className="md:w-1/2 p-8 md:p-12">

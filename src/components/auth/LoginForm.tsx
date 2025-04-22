@@ -22,10 +22,12 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setFormError("");
     
     console.log("Attempting login with:", { email });
     
@@ -37,7 +39,17 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
 
       if (error) {
         console.error("Login error details:", error);
-        toast.error(error.message);
+        
+        // More user-friendly error messages based on error type
+        if (error.message === "Invalid login credentials") {
+          setFormError("The email or password you entered is incorrect. Please try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          setFormError("Please verify your email address before logging in.");
+        } else {
+          setFormError(error.message);
+        }
+        
+        toast.error("Login failed");
         return;
       }
 
@@ -46,6 +58,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
       navigate('/admin');
     } catch (error) {
       console.error("Login exception:", error);
+      setFormError("An unexpected error occurred during login");
       toast.error("An unexpected error occurred during login");
     } finally {
       setLoading(false);
@@ -58,7 +71,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
@@ -77,9 +90,19 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    toast.info("Demo functionality is not available yet.");
+  };
+
   return (
     <>
       <form onSubmit={handleLogin} className="space-y-4">
+        {formError && (
+          <div className="bg-red-50 text-red-800 p-3 rounded-md text-sm">
+            {formError}
+          </div>
+        )}
+        
         <div>
           <Label htmlFor="login-email" className="text-sm font-medium text-gray-700">College Email</Label>
           <Input 
@@ -89,6 +112,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
             placeholder="Enter your college email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
           />
         </div>
@@ -134,6 +158,20 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           )}
         </button>
         
+        <div className="relative flex items-center py-2">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="flex-shrink mx-4 text-gray-400 text-sm">or</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+        
+        <button 
+          type="button"
+          className="w-full bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition"
+          onClick={handleDemoLogin}
+        >
+          Demo Login
+        </button>
+        
         <p className="text-sm text-gray-600 mt-4">
           Don't have an account?{" "}
           <button 
@@ -163,6 +201,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
                 onChange={(e) => setResetEmail(e.target.value)}
                 placeholder="Enter your email"
                 type="email"
+                autoComplete="email"
                 required
               />
             </div>

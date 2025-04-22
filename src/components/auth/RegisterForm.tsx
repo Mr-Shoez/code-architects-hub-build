@@ -1,8 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   const navigate = useNavigate();
@@ -14,6 +16,17 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   const [name, setName] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [formValid, setFormValid] = useState(false);
+
+  // Validate form on input changes
+  useEffect(() => {
+    const isStNumberValid = stNumber ? validateStNumber(stNumber) : false;
+    const isEmailValid = email ? validateEmail(email) : false;
+    const isPasswordValid = password ? validatePassword(password) : false;
+    const isNameValid = name.trim().length > 0;
+    
+    setFormValid(isStNumberValid && isEmailValid && isPasswordValid && isNameValid);
+  }, [stNumber, email, password, name]);
 
   const validateStNumber = (value: string) => {
     const regex = /^ST\d{8}$/;
@@ -74,7 +87,11 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
         }
 
         toast.success("Registration successful! Please check your email for verification.");
-        switchTab(); // Switch to login tab
+        
+        // Auto-switch to login after successful registration
+        setTimeout(() => {
+          switchTab();
+        }, 2000);
       } catch (error) {
         console.error("Registration error:", error);
         toast.error("An unexpected error occurred during registration");
@@ -101,29 +118,31 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   return (
     <form onSubmit={handleRegister} className="space-y-4">
       <div>
-        <label htmlFor="register-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-        <input 
+        <Label htmlFor="register-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</Label>
+        <Input 
           type="text" 
           id="register-name"
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent"
+          className="w-full"
           placeholder="Enter your full name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
           required
         />
       </div>
       
       <div>
-        <label htmlFor="register-st-number" className="block text-sm font-medium text-gray-700 mb-1">
+        <Label htmlFor="register-st-number" className="block text-sm font-medium text-gray-700 mb-1">
           Student Number (Format: ST12345678)
-        </label>
-        <input 
+        </Label>
+        <Input 
           type="text" 
           id="register-st-number"
-          className={`w-full px-4 py-2 rounded-lg border ${stNumberError ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent`}
+          className={`w-full ${stNumberError ? 'border-red-500' : ''}`}
           placeholder="ST12345678"
           value={stNumber}
           onChange={(e) => handleStNumberChange(e.target.value)}
+          autoComplete="username"
           required
         />
         {stNumberError && (
@@ -132,17 +151,18 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
       </div>
       
       <div>
-        <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">College Email</label>
-        <input 
+        <Label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">College Email</Label>
+        <Input 
           type="email" 
           id="register-email"
-          className={`w-full px-4 py-2 rounded-lg border ${emailError ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent`}
+          className={`w-full ${emailError ? 'border-red-500' : ''}`}
           placeholder="ST12345678@rcconnect.edu.za"
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
             validateEmail(e.target.value);
           }}
+          autoComplete="email"
           required
         />
         {emailError && (
@@ -151,21 +171,26 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
       </div>
       
       <div>
-        <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-        <input 
+        <Label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1">Password</Label>
+        <Input 
           type="password" 
           id="register-password"
-          className={`w-full px-4 py-2 rounded-lg border ${passwordError ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent`}
+          className={`w-full ${passwordError ? 'border-red-500' : ''}`}
           placeholder="Choose a strong password"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
             validatePassword(e.target.value);
           }}
+          autoComplete="new-password"
           required
         />
         {passwordError && (
           <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+        )}
+        
+        {password && !passwordError && (
+          <p className="mt-1 text-sm text-green-600">Password meets all requirements</p>
         )}
       </div>
       
@@ -175,8 +200,12 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
       
       <button 
         type="submit"
-        className="w-full bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition"
-        disabled={loading}
+        className={`w-full font-medium py-2 px-4 rounded-md transition ${
+          formValid 
+            ? 'bg-lime text-navy hover:bg-lime/90' 
+            : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+        }`}
+        disabled={loading || !formValid}
       >
         {loading ? (
           <span className="flex items-center justify-center">
