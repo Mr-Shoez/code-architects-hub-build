@@ -1,8 +1,9 @@
-
 import Layout from "../components/Layout";
 import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
 
-// Mock data for events
 const initialEvents = [
   {
     id: 1,
@@ -47,6 +48,7 @@ const Events = () => {
   const [selectedEvent, setSelectedEvent] = useState<null | typeof initialEvents[0]>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
@@ -74,6 +76,13 @@ const Events = () => {
     setShowDetailsModal(true);
   };
 
+  const filteredEvents = selectedDate 
+    ? events.filter(event => {
+        const eventDate = new Date(event.date);
+        return eventDate.toDateString() === selectedDate.toDateString();
+      })
+    : events;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -84,89 +93,101 @@ const Events = () => {
             onClick={handleCreateEvent}
             data-create-event
           >
-            <i className="fas fa-plus mr-2"></i> Create Event
+            <CalendarIcon className="w-5 h-5 mr-2" />
+            Create Event
           </button>
         </div>
         
-        {/* Calendar Placeholder */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-            <i className="fas fa-calendar-alt text-4xl text-gray-400 mb-2"></i>
-            <p className="text-gray-500">Interactive calendar view will be integrated here</p>
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border"
+              classNames={{
+                day_selected: "bg-lime text-navy hover:bg-lime/90",
+                day_today: "bg-accent text-accent-foreground",
+              }}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {filteredEvents.length === 0 ? (
+              <div className="col-span-full text-center py-8 bg-white rounded-lg shadow-md">
+                <CalendarIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-gray-500">No events scheduled for {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'this date'}</p>
+              </div>
+            ) : (
+              filteredEvents.map(event => (
+                <div 
+                  key={event.id} 
+                  className="bg-white rounded-lg shadow-md overflow-hidden"
+                  data-event-id={event.id}
+                >
+                  <div className="bg-navy text-white p-4">
+                    <h3 className="text-xl font-semibold">{event.title}</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="mb-4">
+                      <div className="flex items-center mb-2">
+                        <i className="fas fa-calendar-day text-lime mr-2"></i>
+                        <span>{formatDate(event.date)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <i className="fas fa-map-marker-alt text-lime mr-2"></i>
+                        <span>{event.location}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 font-medium">
+                        <i className="fas fa-users text-gray-500 mr-1"></i> {event.rsvpCount} people attending
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col space-y-2">
+                      <button 
+                        className="bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition w-full"
+                        onClick={() => handleRSVP(event.id, 'going')}
+                      >
+                        <i className="fas fa-check mr-1"></i> Going
+                      </button>
+                      <button 
+                        className="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition w-full"
+                        onClick={() => handleRSVP(event.id, 'notGoing')}
+                      >
+                        <i className="fas fa-times mr-1"></i> Not Going
+                      </button>
+                      <button 
+                        className="text-navy font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition w-full text-center"
+                        onClick={() => handleViewDetails(event)}
+                      >
+                        <i className="fas fa-info-circle mr-1"></i> View Details
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end space-x-2">
+                      <button 
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => console.log(`Edit event ${event.id}`)}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => console.log(`Delete event ${event.id}`)}
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
         
-        {/* Event Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map(event => (
-            <div 
-              key={event.id} 
-              className="bg-white rounded-lg shadow-md overflow-hidden"
-              data-event-id={event.id}
-            >
-              <div className="bg-navy text-white p-4">
-                <h3 className="text-xl font-semibold">{event.title}</h3>
-              </div>
-              <div className="p-4">
-                <div className="mb-4">
-                  <div className="flex items-center mb-2">
-                    <i className="fas fa-calendar-day text-lime mr-2"></i>
-                    <span>{formatDate(event.date)}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <i className="fas fa-map-marker-alt text-lime mr-2"></i>
-                    <span>{event.location}</span>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 font-medium">
-                    <i className="fas fa-users text-gray-500 mr-1"></i> {event.rsvpCount} people attending
-                  </p>
-                </div>
-                
-                <div className="flex flex-col space-y-2">
-                  <button 
-                    className="bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition w-full"
-                    onClick={() => handleRSVP(event.id, 'going')}
-                  >
-                    <i className="fas fa-check mr-1"></i> Going
-                  </button>
-                  <button 
-                    className="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition w-full"
-                    onClick={() => handleRSVP(event.id, 'notGoing')}
-                  >
-                    <i className="fas fa-times mr-1"></i> Not Going
-                  </button>
-                  <button 
-                    className="text-navy font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition w-full text-center"
-                    onClick={() => handleViewDetails(event)}
-                  >
-                    <i className="fas fa-info-circle mr-1"></i> View Details
-                  </button>
-                </div>
-                
-                {/* Admin Actions (placeholder) */}
-                <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end space-x-2">
-                  <button 
-                    className="text-blue-600 hover:text-blue-800"
-                    onClick={() => console.log(`Edit event ${event.id}`)}
-                  >
-                    <i className="fas fa-edit"></i>
-                  </button>
-                  <button 
-                    className="text-red-600 hover:text-red-800"
-                    onClick={() => console.log(`Delete event ${event.id}`)}
-                  >
-                    <i className="fas fa-trash-alt"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {/* Event Details Modal */}
         {showDetailsModal && selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-2xl w-full p-6 relative">
@@ -240,7 +261,6 @@ const Events = () => {
           </div>
         )}
         
-        {/* Create Event Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-lg w-full p-6 relative">
