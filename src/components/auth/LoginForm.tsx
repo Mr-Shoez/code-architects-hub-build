@@ -141,13 +141,14 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
     
     try {
       // Try to sign in with demo credentials
-      const { data, error } = await supabase.auth.signInWithPassword({
+      let userData;
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: 'demo@rcconnect.edu.za',
         password: 'Demo1234!'
       });
 
       if (error) {
-        console.error("Demo login error:", error);
+        console.log("Creating demo user...");
         
         // If the error is "invalid login credentials", try to create the demo user
         if (error.message === "Invalid login credentials") {
@@ -164,6 +165,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           });
           
           if (signUpError) {
+            console.error("Demo user creation error:", signUpError);
             setFormError("Demo login failed. Please try again later.");
             toast.error("Demo login failed");
             return;
@@ -181,15 +183,20 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
             return;
           }
           
-          data = loginData;
+          // Use loginData instead of trying to reassign data
+          userData = loginData;
         } else {
           setFormError("Demo login failed. Please try again later.");
           toast.error("Demo login failed");
           return;
         }
+      } else {
+        // If initial login was successful, use that data
+        userData = data;
       }
 
-      console.log("Demo login successful, user:", data.user);
+      // Now userData contains the data from either the initial login or the second login
+      console.log("Demo login successful, user:", userData.user);
       
       // Check if demo user exists in club_members
       const { data: memberData, error: memberError } = await supabase
@@ -212,7 +219,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
             email: 'demo@rcconnect.edu.za',
             st_number: 'ST12345678',
             role: 'President',
-            user_id: data.user.id
+            user_id: userData.user.id
           });
           
         if (insertError) {
@@ -223,7 +230,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
-            user_id: data.user.id,
+            user_id: userData.user.id,
             role: 'admin'
           });
           
