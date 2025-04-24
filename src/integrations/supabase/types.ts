@@ -60,6 +60,65 @@ export type Database = {
         }
         Relationships: []
       }
+      event_rsvps: {
+        Row: {
+          created_at: string | null
+          event_id: number
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: number
+          id?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: number
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          date: string
+          description: string | null
+          id: number
+          location: string
+          rsvp_count: number | null
+          title: string
+        }
+        Insert: {
+          date: string
+          description?: string | null
+          id?: number
+          location: string
+          rsvp_count?: number | null
+          title: string
+        }
+        Update: {
+          date?: string
+          description?: string | null
+          id?: number
+          location?: string
+          rsvp_count?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       membership_requests: {
         Row: {
           email: string

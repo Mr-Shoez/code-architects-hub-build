@@ -1,57 +1,119 @@
 import Layout from "../components/Layout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-
-const initialEvents = [
-  {
-    id: 1,
-    title: "Web Development Workshop",
-    date: "2023-05-15T14:00:00",
-    location: "Computer Lab 101",
-    description: "Learn the basics of HTML, CSS, and JavaScript in this hands-on workshop. Bring your laptops!",
-    attendees: ["Jane Doe", "John Smith", "Alex Johnson"],
-    rsvpCount: 15
-  },
-  {
-    id: 2,
-    title: "Python Programming Contest",
-    date: "2023-05-20T13:00:00",
-    location: "Auditorium",
-    description: "Test your Python skills in this competitive programming contest with prizes for the top performers!",
-    attendees: ["Sam Williams", "Taylor Brown", "Casey Miller"],
-    rsvpCount: 28
-  },
-  {
-    id: 3,
-    title: "Mobile App Development Talk",
-    date: "2023-05-25T15:30:00",
-    location: "Online",
-    description: "Join us for a virtual session about mobile app development using React Native and Flutter.",
-    attendees: ["Jane Doe", "Casey Miller"],
-    rsvpCount: 42
-  },
-  {
-    id: 4,
-    title: "Data Science and Machine Learning Seminar",
-    date: "2023-06-05T14:00:00",
-    location: "Room 204",
-    description: "Introduction to data science concepts and practical machine learning applications in industry.",
-    attendees: ["John Smith", "Sam Williams"],
-    rsvpCount: 20
-  }
-];
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Events = () => {
-  const [events, setEvents] = useState(initialEvents);
-  const [selectedEvent, setSelectedEvent] = useState<null | typeof initialEvents[0]>(null);
+  const [events, setEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [userRsvps, setUserRsvps] = useState({});
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchEvents();
+    fetchUserRsvps();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      setEvents(data);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load events. Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchUserRsvps = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('event_rsvps')
+        .select('event_id, status')
+        .eq('user_id', session.user.id);
+      
+      if (error) throw error;
+      
+      const rsvpMap = {};
+      data.forEach(rsvp => {
+        rsvpMap[rsvp.event_id] = rsvp.status;
+      });
+      setUserRsvps(rsvpMap);
+    } catch (error) {
+      console.error('Error fetching RSVPs:', error);
+    }
+  };
   
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
+  const handleRSVP = async (eventId, status) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to RSVP for events.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Delete any existing RSVP
+      await supabase
+        .from('event_rsvps')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('user_id', session.user.id);
+
+      // Insert new RSVP
+      const { error } = await supabase
+        .from('event_rsvps')
+        .insert({
+          event_id: eventId,
+          user_id: session.user.id,
+          status
+        });
+
+      if (error) throw error;
+
+      setUserRsvps(prev => ({
+        ...prev,
+        [eventId]: status
+      }));
+
+      toast({
+        title: "Success",
+        description: `You are ${status === 'going' ? 'attending' : 'not attending'} this event.`
+      });
+
+      await fetchEvents(); // Refresh events to update RSVP count
+    } catch (error) {
+      console.error('Error updating RSVP:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update RSVP. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const formatDate = (dateString) => {
+    const options = { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric',
@@ -61,17 +123,11 @@ const Events = () => {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
   
-  const handleRSVP = (eventId: number, status: 'going' | 'notGoing') => {
-    console.log(`RSVP ${status} for event ${eventId}`);
-    // This would update the database in a real app
-  };
-  
   const handleCreateEvent = () => {
-    console.log("Create new event");
     setShowCreateModal(true);
   };
   
-  const handleViewDetails = (event: typeof initialEvents[0]) => {
+  const handleViewDetails = (event) => {
     setSelectedEvent(event);
     setShowDetailsModal(true);
   };
