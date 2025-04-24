@@ -1,9 +1,25 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import WelcomeSection from "@/components/auth/WelcomeSection";
 import AuthTabs from "@/components/auth/AuthTabs";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // If user is logged in, redirect to admin page
+        navigate('/admin');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-navy text-white shadow-md">

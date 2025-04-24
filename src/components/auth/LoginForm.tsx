@@ -50,10 +50,55 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
         }
         
         toast.error("Login failed");
+        setLoading(false);
         return;
       }
 
       console.log("Login successful, user:", data.user);
+      
+      // Check if user exists in club_members
+      const { data: memberData, error: memberError } = await supabase
+        .from('club_members')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .single();
+        
+      if (memberError && memberError.code !== 'PGRST116') {
+        console.error("Error checking member status:", memberError);
+      }
+      
+      if (!memberData) {
+        console.log("User not found in club_members table");
+        // User is authenticated but not in club_members table
+        const { data: requestData } = await supabase
+          .from('membership_requests')
+          .select('*')
+          .eq('email', data.user.email)
+          .single();
+          
+        if (requestData && requestData.status === 'pending') {
+          toast.info("Your membership request is pending approval. Please check back later.");
+        } else if (requestData && requestData.status === 'rejected') {
+          toast.error("Your membership request was rejected. Please contact an administrator.");
+        } else {
+          toast.info("Your account has been created but requires approval. An administrator will review your request.");
+          
+          // Create a membership request if it doesn't exist
+          await supabase.from('membership_requests').insert({
+            name: data.user.user_metadata.name || email,
+            email: data.user.email,
+            st_number: data.user.user_metadata.st_number || 'Unknown',
+            status: 'pending'
+          }).select();
+        }
+        
+        // Sign out since the user is not approved yet
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+      
+      // Successful login and user is a member
       toast.success("Login successful! Redirecting to dashboard...");
       navigate('/admin');
     } catch (error) {
@@ -95,38 +140,6 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
     setFormError("");
     
     try {
-      // First, let's check if the demo user exists
-      const { data: existingUser, error: checkError } = await supabase
-        .from('club_members')
-        .select('email')
-        .eq('email', 'demo@rcconnect.edu.za')
-        .single();
-      
-      // If demo user doesn't exist in club_members, we'll create one
-      if (checkError && !existingUser) {
-        console.log("Creating demo user...");
-        
-        // Create a demo user in auth
-        const { data: authUser, error: signUpError } = await supabase.auth.signUp({
-          email: 'demo@rcconnect.edu.za',
-          password: 'Demo1234!',
-          options: {
-            data: {
-              name: 'Demo User',
-              st_number: 'ST12345678'
-            }
-          }
-        });
-        
-        if (signUpError) {
-          console.error("Demo user creation error:", signUpError);
-          setFormError("Could not create demo user. Please try again.");
-          toast.error("Demo login failed");
-          setLoading(false);
-          return;
-        }
-      }
-      
       // Try to sign in with demo credentials
       const { data, error } = await supabase.auth.signInWithPassword({
         email: 'demo@rcconnect.edu.za',
@@ -135,12 +148,90 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
 
       if (error) {
         console.error("Demo login error:", error);
-        setFormError("Demo login failed. Please try again later.");
-        toast.error("Demo login failed");
-        return;
+        
+        // If the error is "invalid login credentials", try to create the demo user
+        if (error.message === "Invalid login credentials") {
+          // Create a demo user in auth
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: 'demo@rcconnect.edu.za',
+            password: 'Demo1234!',
+            options: {
+              data: {
+                name: 'Demo User',
+                st_number: 'ST12345678'
+              }
+            }
+          });
+          
+          if (signUpError) {
+            setFormError("Demo login failed. Please try again later.");
+            toast.error("Demo login failed");
+            return;
+          }
+          
+          // Try to login again with the newly created account
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: 'demo@rcconnect.edu.za',
+            password: 'Demo1234!'
+          });
+          
+          if (loginError) {
+            setFormError("Demo login failed. Please try again later.");
+            toast.error("Demo login failed");
+            return;
+          }
+          
+          data = loginData;
+        } else {
+          setFormError("Demo login failed. Please try again later.");
+          toast.error("Demo login failed");
+          return;
+        }
       }
 
       console.log("Demo login successful, user:", data.user);
+      
+      // Check if demo user exists in club_members
+      const { data: memberData, error: memberError } = await supabase
+        .from('club_members')
+        .select('*')
+        .eq('email', 'demo@rcconnect.edu.za')
+        .single();
+        
+      if (memberError && memberError.code !== 'PGRST116') {
+        console.error("Error checking demo member status:", memberError);
+      }
+      
+      // If demo user doesn't exist in club_members, create them
+      if (!memberData) {
+        console.log("Demo user not found in club_members, creating...");
+        const { error: insertError } = await supabase
+          .from('club_members')
+          .insert({
+            name: 'Demo User',
+            email: 'demo@rcconnect.edu.za',
+            st_number: 'ST12345678',
+            role: 'President',
+            user_id: data.user.id
+          });
+          
+        if (insertError) {
+          console.error("Error creating demo club member:", insertError);
+        }
+        
+        // Also ensure demo user has admin role
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: 'admin'
+          });
+          
+        if (roleError) {
+          console.error("Error adding admin role for demo user:", roleError);
+        }
+      }
+
       toast.success("Demo login successful! Redirecting to dashboard...");
       navigate('/admin');
     } catch (error) {
