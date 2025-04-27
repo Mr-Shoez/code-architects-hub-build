@@ -9,16 +9,36 @@ import MobileNavLink from "./navigation/MobileNavLink";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState("");
+  const [userName, setUserName] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
   
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsLoggedIn(!!data.session);
-      if (data.session) {
-        setIsAdmin(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
+        
+        setIsLoggedIn(!!session);
+        
+        if (session) {
+          // Fetch member information including role
+          const { data: memberData, error: memberError } = await supabase
+            .from('club_members')
+            .select('name, role')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          
+          if (memberError) {
+            console.error("Error fetching member data:", memberError);
+          } else if (memberData) {
+            setUserRole(memberData.role);
+            setUserName(memberData.name);
+          }
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
       }
     };
     
@@ -26,7 +46,10 @@ const Navbar = () => {
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
-      setIsAdmin(!!session);
+      if (!session) {
+        setUserRole("");
+        setUserName("");
+      }
     });
     
     return () => subscription.unsubscribe();
@@ -43,9 +66,12 @@ const Navbar = () => {
     }
   };
 
+  // Hide navbar on the login page for non-logged in users
   if (location.pathname === '/' && !isLoggedIn) {
     return null;
   }
+
+  const isLeadership = ["President", "Vice President", "Secretary", "Treasurer"].includes(userRole);
 
   return (
     <nav className="bg-navy text-white shadow-md w-full">
@@ -75,8 +101,13 @@ const Navbar = () => {
                   <NavLink to="/members" currentPath={location.pathname}>Members</NavLink>
                   <NavLink to="/events" currentPath={location.pathname}>Events</NavLink>
                   <NavLink to="/announcements" currentPath={location.pathname}>Announcements</NavLink>
-                  {isAdmin && (
+                  {isLeadership && (
                     <NavLink to="/admin" currentPath={location.pathname}>Admin</NavLink>
+                  )}
+                  {userRole && (
+                    <span className="text-lime px-3 py-2">
+                      {userName} • {userRole}
+                    </span>
                   )}
                 </>
               )}
@@ -119,7 +150,7 @@ const Navbar = () => {
                 >
                   Announcements
                 </MobileNavLink>
-                {isAdmin && (
+                {isLeadership && (
                   <MobileNavLink 
                     to="/admin" 
                     currentPath={location.pathname}
@@ -127,6 +158,11 @@ const Navbar = () => {
                   >
                     Admin
                   </MobileNavLink>
+                )}
+                {userRole && (
+                  <div className="px-3 py-2 text-lime">
+                    {userName} • {userRole}
+                  </div>
                 )}
                 <button 
                   onClick={() => {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
+import { Badge } from "@/components/ui/badge";
 
 interface Member {
   id: string;
@@ -13,6 +14,7 @@ interface Member {
   email: string;
   stNumber: string;
   role: string;
+  user_id?: string | null;
 }
 
 interface RoleManagementProps {
@@ -41,6 +43,21 @@ const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
     } finally {
       setLoading(null);
       setConfirmChange(null);
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch(role) {
+      case 'President':
+        return 'bg-purple-100 text-purple-800';
+      case 'Vice President':
+        return 'bg-blue-100 text-blue-800';
+      case 'Secretary':
+        return 'bg-green-100 text-green-800';
+      case 'Treasurer':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -79,7 +96,9 @@ const RoleManagement = ({ members, onRoleChange }: RoleManagementProps) => {
                   <div className="text-gray-500">{member.email}</div>
                 </TableCell>
                 <TableCell>
-                  <div className="text-gray-500">{member.role}</div>
+                  <Badge className={getRoleBadgeColor(member.role)} variant="outline">
+                    {member.role}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <select 
