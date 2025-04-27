@@ -12,8 +12,9 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   const [stNumberError, setStNumberError] = useState("");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [formValid, setFormValid] = useState(false);
@@ -23,10 +24,11 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
     const isStNumberValid = stNumber ? validateStNumber(stNumber) : false;
     const isEmailValid = email ? validateEmail(email) : false;
     const isPasswordValid = password ? validatePassword(password) : false;
-    const isNameValid = name.trim().length > 0;
+    const isFirstNameValid = firstName.trim().length > 0;
+    const isLastNameValid = lastName.trim().length > 0;
     
-    setFormValid(isStNumberValid && isEmailValid && isPasswordValid && isNameValid);
-  }, [stNumber, email, password, name]);
+    setFormValid(isStNumberValid && isEmailValid && isPasswordValid && isFirstNameValid && isLastNameValid);
+  }, [stNumber, email, password, firstName, lastName]);
 
   const validateStNumber = (value: string) => {
     const regex = /^ST\d{8}$/;
@@ -39,11 +41,9 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   };
 
   const validateEmail = (value: string) => {
-    const stNumberLower = stNumber.toLowerCase();
-    const expectedEmail = `${stNumberLower}@rcconnect.edu.za`;
-    
-    if (value.toLowerCase() !== expectedEmail) {
-      setEmailError(`Email must match your student number: ${expectedEmail}`);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      setEmailError("Please enter a valid email address");
       return false;
     }
     setEmailError("");
@@ -63,11 +63,7 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const isStNumberValid = validateStNumber(stNumber);
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
-    
-    if (isStNumberValid && isEmailValid && isPasswordValid) {
+    if (formValid) {
       try {
         setLoading(true);
         const { data, error } = await supabase.auth.signUp({
@@ -75,8 +71,10 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
           password,
           options: {
             data: {
-              name,
-              st_number: stNumber
+              first_name: firstName,
+              last_name: lastName,
+              st_number: stNumber,
+              full_name: `${firstName} ${lastName}`
             }
           }
         });
@@ -101,34 +99,36 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
     }
   };
 
-  // Auto-update email based on student number
-  const handleStNumberChange = (value: string) => {
-    const upperValue = value.toUpperCase();
-    setStNumber(upperValue);
-    validateStNumber(upperValue);
-    
-    // Auto-generate email when ST number is valid
-    if (validateStNumber(upperValue)) {
-      const generatedEmail = `${upperValue.toLowerCase()}@rcconnect.edu.za`;
-      setEmail(generatedEmail);
-      setEmailError("");
-    }
-  };
-
   return (
     <form onSubmit={handleRegister} className="space-y-4">
-      <div>
-        <Label htmlFor="register-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</Label>
-        <Input 
-          type="text" 
-          id="register-name"
-          className="w-full"
-          placeholder="Enter your full name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoComplete="name"
-          required
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="register-first-name" className="block text-sm font-medium text-gray-700 mb-1">First Name</Label>
+          <Input 
+            type="text" 
+            id="register-first-name"
+            className="w-full"
+            placeholder="First Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            autoComplete="given-name"
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="register-last-name" className="block text-sm font-medium text-gray-700 mb-1">Last Name</Label>
+          <Input 
+            type="text" 
+            id="register-last-name"
+            className="w-full"
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            autoComplete="family-name"
+            required
+          />
+        </div>
       </div>
       
       <div>
@@ -141,7 +141,11 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
           className={`w-full ${stNumberError ? 'border-red-500' : ''}`}
           placeholder="ST12345678"
           value={stNumber}
-          onChange={(e) => handleStNumberChange(e.target.value)}
+          onChange={(e) => {
+            const upperValue = e.target.value.toUpperCase();
+            setStNumber(upperValue);
+            validateStNumber(upperValue);
+          }}
           autoComplete="username"
           required
         />
@@ -151,12 +155,12 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
       </div>
       
       <div>
-        <Label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">College Email</Label>
+        <Label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">Email</Label>
         <Input 
           type="email" 
           id="register-email"
           className={`w-full ${emailError ? 'border-red-500' : ''}`}
-          placeholder="ST12345678@rcconnect.edu.za"
+          placeholder="Your email address"
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
@@ -192,10 +196,6 @@ const RegisterForm = ({ switchTab }: { switchTab: () => void }) => {
         {password && !passwordError && (
           <p className="mt-1 text-sm text-green-600">Password meets all requirements</p>
         )}
-      </div>
-      
-      <div className="bg-gray-100 p-3 rounded-md text-sm text-gray-700">
-        <p><i className="fas fa-info-circle text-navy mr-1"></i> Registration requires manual verification & admin approval.</p>
       </div>
       
       <button 

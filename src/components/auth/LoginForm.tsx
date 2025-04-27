@@ -42,7 +42,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
         
         // More user-friendly error messages based on error type
         if (error.message === "Invalid login credentials") {
-          setFormError("The email or password you entered is incorrect. Please try again or use the Demo Login.");
+          setFormError("The email or password you entered is incorrect. Please try again.");
         } else if (error.message.includes("Email not confirmed")) {
           setFormError("Please verify your email address before logging in.");
         } else {
@@ -85,7 +85,7 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           
           // Create a membership request if it doesn't exist
           await supabase.from('membership_requests').insert({
-            name: data.user.user_metadata.name || email,
+            name: `${data.user.user_metadata.first_name || ''} ${data.user.user_metadata.last_name || ''}`.trim() || email,
             email: data.user.email,
             st_number: data.user.user_metadata.st_number || 'Unknown',
             status: 'pending'
@@ -135,121 +135,6 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    setFormError("");
-    
-    try {
-      // Try to sign in with demo credentials
-      let userData;
-      let { data, error } = await supabase.auth.signInWithPassword({
-        email: 'demo@rcconnect.edu.za',
-        password: 'Demo1234!'
-      });
-
-      if (error) {
-        console.log("Creating demo user...");
-        
-        // If the error is "invalid login credentials", try to create the demo user
-        if (error.message === "Invalid login credentials") {
-          // Create a demo user in auth
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'demo@rcconnect.edu.za',
-            password: 'Demo1234!',
-            options: {
-              data: {
-                name: 'Demo User',
-                st_number: 'ST12345678'
-              }
-            }
-          });
-          
-          if (signUpError) {
-            console.error("Demo user creation error:", signUpError);
-            setFormError("Demo login failed. Please try again later.");
-            toast.error("Demo login failed");
-            return;
-          }
-          
-          // Try to login again with the newly created account
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: 'demo@rcconnect.edu.za',
-            password: 'Demo1234!'
-          });
-          
-          if (loginError) {
-            setFormError("Demo login failed. Please try again later.");
-            toast.error("Demo login failed");
-            return;
-          }
-          
-          // Use loginData instead of trying to reassign data
-          userData = loginData;
-        } else {
-          setFormError("Demo login failed. Please try again later.");
-          toast.error("Demo login failed");
-          return;
-        }
-      } else {
-        // If initial login was successful, use that data
-        userData = data;
-      }
-
-      // Now userData contains the data from either the initial login or the second login
-      console.log("Demo login successful, user:", userData.user);
-      
-      // Check if demo user exists in club_members
-      const { data: memberData, error: memberError } = await supabase
-        .from('club_members')
-        .select('*')
-        .eq('email', 'demo@rcconnect.edu.za')
-        .single();
-        
-      if (memberError && memberError.code !== 'PGRST116') {
-        console.error("Error checking demo member status:", memberError);
-      }
-      
-      // If demo user doesn't exist in club_members, create them
-      if (!memberData) {
-        console.log("Demo user not found in club_members, creating...");
-        const { error: insertError } = await supabase
-          .from('club_members')
-          .insert({
-            name: 'Demo User',
-            email: 'demo@rcconnect.edu.za',
-            st_number: 'ST12345678',
-            role: 'President',
-            user_id: userData.user.id
-          });
-          
-        if (insertError) {
-          console.error("Error creating demo club member:", insertError);
-        }
-        
-        // Also ensure demo user has admin role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userData.user.id,
-            role: 'admin'
-          });
-          
-        if (roleError) {
-          console.error("Error adding admin role for demo user:", roleError);
-        }
-      }
-
-      toast.success("Demo login successful! Redirecting to dashboard...");
-      navigate('/admin');
-    } catch (error) {
-      console.error("Demo login exception:", error);
-      setFormError("An unexpected error occurred during demo login");
-      toast.error("Demo login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <>
       <form onSubmit={handleLogin} className="space-y-4">
@@ -260,12 +145,12 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
         )}
         
         <div>
-          <Label htmlFor="login-email" className="text-sm font-medium text-gray-700">College Email</Label>
+          <Label htmlFor="login-email" className="text-sm font-medium text-gray-700">Email</Label>
           <Input 
             type="email" 
             id="login-email"
             className="w-full mt-1"
-            placeholder="Enter your college email"
+            placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
@@ -312,21 +197,6 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           ) : (
             "Log In"
           )}
-        </button>
-        
-        <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-gray-300"></div>
-          <span className="flex-shrink mx-4 text-gray-400 text-sm">or</span>
-          <div className="flex-grow border-t border-gray-300"></div>
-        </div>
-        
-        <button 
-          type="button"
-          className="w-full bg-lime text-navy font-medium py-2 px-4 rounded-md hover:bg-lime/90 transition"
-          onClick={handleDemoLogin}
-          disabled={loading}
-        >
-          {loading ? "Please wait..." : "Demo Login (Quick Access)"}
         </button>
         
         <p className="text-sm text-gray-600 mt-4">

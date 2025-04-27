@@ -16,7 +16,7 @@ import Admin from "./pages/Admin";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,10 +37,10 @@ const App = () => {
   }, []);
 
   // Protected route component
-  const ProtectedRoute = ({ children }) => {
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
     if (!session) return <Navigate to="/" replace />;
-    return children;
+    return <>{children}</>;
   };
 
   return (
