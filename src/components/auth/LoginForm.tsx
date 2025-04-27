@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import FormInput from "./FormInput";
+import AuthFormError from "./AuthFormError";
+import SubmitButton from "./SubmitButton";
 import { 
   Dialog,
   DialogContent,
@@ -29,8 +30,6 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
     setLoading(true);
     setFormError("");
     
-    console.log("Attempting login with:", { email });
-    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -39,66 +38,11 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
 
       if (error) {
         console.error("Login error details:", error);
-        
-        // More user-friendly error messages based on error type
-        if (error.message === "Invalid login credentials") {
-          setFormError("The email or password you entered is incorrect. Please try again.");
-        } else if (error.message.includes("Email not confirmed")) {
-          setFormError("Please verify your email address before logging in.");
-        } else {
-          setFormError(error.message);
-        }
-        
+        setFormError(error.message);
         toast.error("Login failed");
-        setLoading(false);
         return;
       }
 
-      console.log("Login successful, user:", data.user);
-      
-      // Check if user exists in club_members
-      const { data: memberData, error: memberError } = await supabase
-        .from('club_members')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .single();
-        
-      if (memberError && memberError.code !== 'PGRST116') {
-        console.error("Error checking member status:", memberError);
-      }
-      
-      if (!memberData) {
-        console.log("User not found in club_members table");
-        // User is authenticated but not in club_members table
-        const { data: requestData } = await supabase
-          .from('membership_requests')
-          .select('*')
-          .eq('email', data.user.email)
-          .single();
-          
-        if (requestData && requestData.status === 'pending') {
-          toast.info("Your membership request is pending approval. Please check back later.");
-        } else if (requestData && requestData.status === 'rejected') {
-          toast.error("Your membership request was rejected. Please contact an administrator.");
-        } else {
-          toast.info("Your account has been created but requires approval. An administrator will review your request.");
-          
-          // Create a membership request if it doesn't exist
-          await supabase.from('membership_requests').insert({
-            name: `${data.user.user_metadata.first_name || ''} ${data.user.user_metadata.last_name || ''}`.trim() || email,
-            email: data.user.email,
-            st_number: data.user.user_metadata.st_number || 'Unknown',
-            status: 'pending'
-          }).select();
-        }
-        
-        // Sign out since the user is not approved yet
-        await supabase.auth.signOut();
-        setLoading(false);
-        return;
-      }
-      
-      // Successful login and user is a member
       toast.success("Login successful! Redirecting to dashboard...");
       navigate('/admin');
     } catch (error) {
@@ -138,66 +82,44 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
   return (
     <>
       <form onSubmit={handleLogin} className="space-y-4">
-        {formError && (
-          <div className="bg-red-50 text-red-800 p-3 rounded-md text-sm">
-            {formError}
-          </div>
-        )}
+        <AuthFormError error={formError} />
         
-        <div>
-          <Label htmlFor="login-email" className="text-sm font-medium text-gray-700">Email</Label>
-          <Input 
-            type="email" 
-            id="login-email"
-            className="w-full mt-1"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
-        </div>
+        <FormInput
+          id="login-email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          autoComplete="email"
+        />
         
         <div>
           <div className="flex justify-between items-center">
-            <Label htmlFor="login-password" className="text-sm font-medium text-gray-700">Password</Label>
+            <FormInput
+              id="login-password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+            />
             <button 
               type="button" 
-              className="text-xs text-navy hover:underline" 
+              className="text-xs text-navy hover:underline ml-2" 
               onClick={() => setResetPasswordOpen(true)}
             >
               Forgot Password?
             </button>
           </div>
-          <Input 
-            type="password" 
-            id="login-password"
-            className="w-full mt-1"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
         </div>
         
-        <button 
-          type="submit"
-          className="w-full bg-navy text-white font-medium py-2 px-4 rounded-md hover:bg-navy/90 transition"
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Logging in...
-            </span>
-          ) : (
-            "Log In"
-          )}
-        </button>
+        <SubmitButton 
+          loading={loading}
+          text="Log In"
+          loadingText="Logging in..."
+        />
         
         <p className="text-sm text-gray-600 mt-4">
           Don't have an account?{" "}
@@ -221,15 +143,14 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
           </DialogHeader>
           <form onSubmit={handleResetPassword}>
             <div className="py-4">
-              <Label htmlFor="reset-email" className="mb-2 block">Email</Label>
-              <Input
+              <FormInput
                 id="reset-email"
+                label="Email"
+                type="email"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 placeholder="Enter your email"
-                type="email"
                 autoComplete="email"
-                required
               />
             </div>
             <DialogFooter>
@@ -241,23 +162,11 @@ const LoginForm = ({ switchTab }: { switchTab: () => void }) => {
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="bg-navy text-white font-medium py-2 px-4 rounded-md hover:bg-navy/90 transition"
-                disabled={resetLoading}
-              >
-                {resetLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Sending...
-                  </span>
-                ) : (
-                  "Send Reset Link"
-                )}
-              </button>
+              <SubmitButton
+                loading={resetLoading}
+                text="Send Reset Link"
+                loadingText="Sending..."
+              />
             </DialogFooter>
           </form>
         </DialogContent>
