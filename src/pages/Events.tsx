@@ -1,3 +1,4 @@
+
 import Layout from "../components/Layout";
 import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
@@ -114,11 +115,11 @@ const Events = () => {
   
   const formatDate = (dateString) => {
     const options = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric' as const, 
+      month: 'long' as const, 
+      day: 'numeric' as const,
+      hour: '2-digit' as const,
+      minute: '2-digit' as const
     };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
